@@ -14,6 +14,22 @@ isCleanSession = false, 持久性会话，代理将为客户端存储所有订�
 userName = “”,用户名
 Password = “”,密码
 
-二.
+二．实例化MqttAndroidClient
+Val mqttClient = MqttAndroidClient(context,serverUrl,clientId)
+context:用于将上下文传递给回调
+serverUrl：指定用于连接到MQTT服务器的协议、主机名和端口
+clientId：指定用于标识此连接到服务器的名称
+MqttAndroidClient构造方法中调用另一个构造方法this(context,serverUrl,clientId,pesistence=null,ackType=Ack.AUTO_ACK)
+pesistence:用于存储运行中消息的持久性类,如果为null,则使用默认的持久性机制
+ackType: 应用程序希望确认消息已被处理的方式，默认自动
+
+三．设置回调
+设置一个回调侦听器以用于异步发生的事件.有许多事件将通知侦听器。这些包括:
+1.新消息到达并准备好处理
+2.与服务器的连接已丢失
+3.已完成像服务器的消息发送
+可以使用从每个非阻塞方法返回的MqttToken或在非阻塞方法上设置IMqttActionListener来跟踪其他单个操作进度（例如连接和订阅）的事件
+mqttClient.setCallback(callback)
+callback:用来给某些异步事件调用
 
 
