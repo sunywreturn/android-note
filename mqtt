@@ -82,6 +82,10 @@ highResolutionTimer:用于为keepalive ping调度提供时间值
 (4)topics = new Hashtable()
 8.回到MqttConnection.connect。调用myClient.connect(connectOptions,invocationContext,listener)
 9.来到MqttAsynncClient.connect方法。
-(1)判断ClientComms类的comms对象的状态，ClientComms：处理客户端和服务端的通信，发送和接收mqtt v3消息。创建一个ClientComms对象，使用指定的模块处理网络调用。
+(1)判断ClientComms类的comms对象的状态，ClientComms：处理客户端和服务端的通信，发送和接收mqtt v3消息。创建一个ClientComms对象，使用指定的模块处理网络调用，实例化CommsTokenStore对象，CommsCallback对象，ClientState对象，这三个对象后面再介绍。
+(2)设置用来通信的网络模块
+(3)设置重连回调
+(4)实例化ConnectActionListener对象，此对象优先于用户提供的回调，把我们自己的mqttCallback设置给ConnectActionListener对象。
+10.设置用来通信的网络模块,展开来看，来到createNetModules(serverUrl,option)方法，
 
 
