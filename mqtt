@@ -1,1 +1,19 @@
-mqtt运作原理
+Android mqtt client v3源码分析
+
+mqtt基础要点
+参考链接：https://www.hivemq.com/mqtt-essentials/
+
+使用步骤
+一．实例化mqtt连接参数MqttConnectOptions
+
+val ooptions = MqttConnectOptions() 
+例如，设置以下参数：
+keepAliveInterval = 60 ,保持活动的间隔是60s
+isAutomaticReconnect = true ,设置自动重连
+isCleanSession = false, 持久性会话，代理将为客户端存储所有订阅，并为客户端存储所有以服务质量级别1或2订阅的消息
+userName = “”,用户名
+Password = “”,密码
+
+二.
+
+
