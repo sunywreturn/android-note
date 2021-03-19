@@ -32,4 +32,56 @@ ackType: 应用程序希望确认消息已被处理的方式，默认自动
 mqttClient.setCallback(callback)
 callback:用来给某些异步事件调用
 
+四．连接过程
+ImqttToken = mqttClient.connect(options,context,listener) throw MqttException
+使用指定的参数连接到mqtt server.
+listener:连接完成时通知此侦听
+ImqttToken ：可用于跟踪和等待连接完成
+MqttException:包括任何连接错误，通信错误
+在connect方法中主要代码：
+1.生成MqttTokenAndroid
+2.实际的连接依赖于android service组件,mqtt服务需要在后台运行，页面没打开也需要接收mqtt消息，在这个方法里启动和绑定，直到serviceConnection.onServiceConnected()方法异步调用时才可以使用，所以连接本身是在onServiceConnected()做的。
+3.注册receiver，
+4.回到onServiceConnected()中，调用doConnect
+5.doConnect()方法中，
+(1)调用clientHandle = mqttService.getClient(serverUrl,client,packagenname,persistence)获取一个 MqttConnection对象以表示与服务器的连接,返回此连接的句柄。MqttConnection(mqttservice,serverUrl,clientId,persistence,clientHandle).
+(2)activityToken = storeToken(connectToken),
+connectToken:识别一个操作
+activityToken:token的标识符，可以传递给android service
+(3)mqttSetvice.connect(clientHandle,connectOptions,null,activityToken)
+6.来到MqttService类中的connect(clientHandle,connectOptions,null,activityToken)方法，连接到特定客户端指定的MQTT服务器。
+clientHandle：MqttConnection使用的标识符
+activityToken：传递给activity的标识符
+取出MqttConnection对象
+MqttConnection client = getConnection(clientHandle),如果client  == null，说明connections map集合被gc回收了，要考虑内存优化。调用client.connect(connectOptions,null,activityToken)
+7.来到client.connect(connectOptions,null,activityToken)方法，
+(1)存储activityToken以进行重连
+(2)如果connectOptions.isCleanSession == true,需要清除持久性存储的message
+(3)If persistence == null,需要设置mqtt客户端持久性存储，persistence = new MqttDefaultFileFilePersistence(pwd),在指定目录中创建给予文件的持久性数据存储。
+(4)实例化MqttConnectionListener类，IMqttConnectionListener listener = new MqttConnectionListener(resultBunndle){ 
+	onSuccess(){
+		doAfterConnectSuccess(resultBunndle)
+	}
+	onFailue(){
+		doAfterConnnectFail(resultBunndle)
+	}
+}
+resultBunndle:包含activityToken,invocationContext,”connect”数据
+(5)实例化AlarmPingSender类
+alarmPingSender = new AlarmPingSender(service),android上默认的ping sender实现。它基于AlarmMannager .此类实现MqttpingSender接口，允许应用程序在每个存活间隔内向服务器发送ping数据包
+(6)实例化MqttAsyncClient对象，myClient = new MqttAsyncClient(serverUrl,client,pesistence,alarmPingSender ),内部调用MqttAsyncClient(serverUrl,clientId,pesistence,alarmPingSender,executorService,highResolutionTimer=null)
+serverUrl:支持两种连接的类型，tc://用于tcp connection,ssl://用于受SSL/TLS安全保护的tcp connection。如果端口未指定，tcp://的默认端口是1883，ssl://的默认端口是8883。
+clientId:可以使用generateClientId()方法来生成满足条件的随机客户端id,由于当客户端重新连接到服务器时被服务器端使用，因此客户端必须使用相同的标识符订阅或可靠的传递消息。
+在java se中，可以通过以下几种方式之一配置ssl，客户端将按以下方式使用他们：提供一个SSLSocketFactory，应用程序可以使用MqttConnectOptionns.setSocketFactory(SocketFactory) 使用适当的SSL设置来提供一个SocketFactory。第二个，SSL Properties，应用程序可以使用MqttConnectOptions.setSSLProperties(Properties)将SSL settings作为简单的java属性提供。第三个，使用JVM settings,有很多standard Java system properties可用于配置key和trust stores。在Java me中，平台设置用于SSL connections。
+持久性机制用于启用可靠的消息传递。 为了可靠地传递以服务质量（QoS）1或2发送的消息，必须将消息存储在客户端和服务器上，直到完成消息传递为止。 如果消息在传递时没有安全地存储，则客户端或服务器中的故障可能导致消息丢失。 通过{@link MqttClientPersistence}接口支持可插入的持久性机制。 必须指定此接口的安全存储消息的实现者，以便消息传递可靠。 另外，必须将{@link MqttConnectOptions＃setCleanSession（boolean）}设置为false。 如果仅发送或接收QoS 0消息，或者将cleanSession设置为true，则不需要安全存储。
+executorService:用于管理线程
+highResolutionTimer:用于为keepalive ping调度提供时间值
+7.来到MqttAsyncClient()构造方法中，
+(1)如果persistence==null，persistence=new MemoryPersistence(),使用内存持久性。
+(2)if highResolutionTimer==null,highResolutionTimer = SystemHighresolutionTimer(),适用于大多数JVM的高分辨率计时器，此实现不适用于android。 (3)实例化一个ClientComms对象comms =ClientComms(mqttAsyncClient,persistence,pingSender,executorService,highResolutionTimer)
+(4)topics = new Hashtable()
+8.回到MqttConnection.connect。调用myClient.connect(connectOptions,invocationContext,listener)
+9.来到MqttAsynncClient.connect方法。
+(1)判断ClientComms类的comms对象的状态，ClientComms：处理客户端和服务端的通信，发送和接收mqtt v3消息。创建一个ClientComms对象，使用指定的模块处理网络调用。
+
 
